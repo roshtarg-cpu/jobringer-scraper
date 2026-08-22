@@ -33,31 +33,14 @@ async def main():
                 proxy_url = f'http://auto:{proxy_password}@proxy.apify.com:8000'
                 Actor.log.info(f'Using Apify proxy: {group}')
         
-        # Build search URL - try multiple approaches
+        # Build search URL - USE /jobs as PRIMARY (filtered URLs don't work)
         base_url = 'https://jobringer.com'
         
-        # Strategy 1: Try category-based URLs
-        search_urls = []
+        # Use generic jobs page (only reliable URL that returns job listings)
+        search_url = f'{base_url}/jobs'
         
-        if search_query and location:
-            # Try combined search
-            search_urls.append(f'{base_url}/jobs-in-{search_query.lower().replace(" ", "-")}-{location.lower().replace(" ", "-")}')
-        
-        if search_query:
-            # Try query-only
-            search_urls.append(f'{base_url}/jobs-in-{search_query.lower().replace(" ", "-")}')
-        
-        if location:
-            # Try location-only
-            search_urls.append(f'{base_url}/jobs-in-{location.lower().replace(" ", "-")}')
-        
-        # Fallback to generic jobs page
-        search_urls.append(f'{base_url}/jobs')
-        
-        # Use first URL as primary
-        search_url = search_urls[0]
         Actor.log.info(f'Search URL: {search_url}')
-        Actor.log.info(f'Fallback URLs: {len(search_urls) - 1}')
+        Actor.log.info(f'Note: Query/location filters not used - jobringer requires browsing all jobs')
         
         # Track stats
         item_count = 0
