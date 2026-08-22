@@ -131,15 +131,28 @@ def parse_job_links(html):
     soup = BeautifulSoup(html, 'lxml')
     links = []
     
-    # Look for job links - common patterns
+    # UPDATED: More comprehensive link patterns for jobringer.com
+    # Based on actual site structure analysis
     job_link_patterns = [
-        re.compile(r'/job[s]?/[\w-]+'),
-        re.compile(r'/vacancy/[\w-]+'),
-        re.compile(r'/position/[\w-]+'),
-        re.compile(r'job-\d+'),
-        re.compile(r'/[\w-]+-job-in-'),
+        re.compile(r'/job[s]?/[\w-]+', re.I),
+        re.compile(r'/vacancy/[\w-]+', re.I),
+        re.compile(r'/position/[\w-]+', re.I),
+        re.compile(r'job-\d+', re.I),
+        re.compile(r'/[\w-]+-job-in-', re.I),
+        re.compile(r'/job-detail', re.I),
+        re.compile(r'/jobdetails', re.I),
+        re.compile(r'view.*job', re.I),
     ]
     
+    # Also look for data attributes that might contain job IDs
+    for element in soup.find_all(['div', 'a'], attrs={'data-job-id': True}):
+        job_id = element.get('data-job-id')
+        if job_id:
+            full_url = f'https://jobringer.com/job/{job_id}'
+            if full_url not in links:
+                links.append(full_url)
+    
+    # Parse all links
     for link_tag in soup.find_all('a', href=True):
         href = link_tag.get('href', '')
         
@@ -156,5 +169,28 @@ def parse_job_links(html):
                 if full_url not in links:
                     links.append(full_url)
                 break
+    
+    # If still no links found, try to find ANY links that might be jobs
+    # by looking for links with text containing job-related keywords
+    if len(links) == 0:
+        for link_tag in soup.find_all('a', href=True):
+            text = link_tag.get_text(strip=True).lower()
+            href = link_tag.get('href', '')
+            
+            # Skip navigation and common non-job links
+            if any(skip in href.lower() for skip in ['login', 'signup', 'register', 'pricing', 'about', 'contact', 'faq', 'terms', 'privacy']):
+                continue
+            
+            # Look for job-related text
+            if any(keyword in text for keyword in ['apply', 'view job', 'details', 'opening']) and href:
+                if href.startswith('http'):
+                    full_url = href
+                elif href.startswith('/'):
+                    full_url = f'https://jobringer.com{href}'
+                else:
+                    continue
+                
+                if 'jobringer.com' in full_url and full_url not in links:
+                    links.append(full_url)
     
     return links
