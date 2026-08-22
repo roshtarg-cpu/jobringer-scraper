@@ -1,9 +1,12 @@
 {
   "actorSpecification": 1,
   "name": "jobringer-scraper",
-  "title": "JobRinger Jobs Scraper for AI Agents",
-  "description": "Extract job listings from JobRinger.com with title, company, location, salary, experience, and description. Perfect for AI agents, Claude, ChatGPT integration via Apify MCP. Get structured job data for recruitment automation and market analysis.",
+  "title": "JobRinger Scraper - AI-Ready Indian Job Data",
+  "description": "Extract JobRinger.com jobs with title, company, salary, skills. First JobRinger scraper on Apify. For recruitment automation and market intelligence. Works with Claude ChatGPT AI agents via Apify MCP.",
   "version": "0.1",
   "buildTag": "latest",
-  "dockerfile": "./Dockerfile"
+  "dockerfile": "./Dockerfile",
+  "storages": {
+    "dataset": "jobringer-jobs"
+  }
 }

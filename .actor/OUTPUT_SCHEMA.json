@@ -1,0 +1,64 @@
+{
+  "title": "JobRinger Job Listings",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "jobTitle": {
+      "type": "string",
+      "description": "Job position title",
+      "editor": "textfield"
+    },
+    "company": {
+      "type": "string",
+      "description": "Hiring company name",
+      "editor": "textfield"
+    },
+    "location": {
+      "type": "string",
+      "description": "Job location (city, state)",
+      "editor": "textfield"
+    },
+    "salary": {
+      "type": "string",
+      "description": "Salary range or package",
+      "editor": "textfield"
+    },
+    "experience": {
+      "type": "string",
+      "description": "Required experience level",
+      "editor": "textfield"
+    },
+    "jobType": {
+      "type": "string",
+      "description": "Employment type (Full-time, Part-time, etc.)",
+      "editor": "textfield"
+    },
+    "skills": {
+      "type": "string",
+      "description": "Required skills and qualifications",
+      "editor": "textfield"
+    },
+    "postedDate": {
+      "type": "string",
+      "description": "When the job was posted",
+      "editor": "textfield"
+    },
+    "description": {
+      "type": "string",
+      "description": "Full job description",
+      "editor": "textarea"
+    },
+    "url": {
+      "type": "string",
+      "description": "Job posting URL",
+      "editor": "textfield",
+      "format": "url"
+    },
+    "scrapedAt": {
+      "type": "string",
+      "description": "Extraction timestamp",
+      "editor": "textfield",
+      "format": "date-time"
+    }
+  }
+}
