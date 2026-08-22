@@ -5,17 +5,6 @@ from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 
 
-def _extract_next_data(html):
-    """Extract __NEXT_DATA__ JSON if present."""
-    match = re.search(r'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except:
-            pass
-    return None
-
-
 def _extract_json_ld(html):
     """Extract JSON-LD structured data if present."""
     match = re.search(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL)
@@ -86,41 +75,38 @@ def parse_job_listing(html, url):
                 job_data['company'] = company_tag.get_text(strip=True)
         
         # Location - specific ID with nested structure
-        location_tag = soup.find('span', {'id': 'job-location'})
-        if location_tag:
-            location_p = location_tag.find('p', {'itemprop': 'jobLocation'})
+        location_span = soup.find('span', {'id': 'job-location'})
+        if location_span:
+            # Try to get the nested p tag
+            location_p = location_span.find('p', {'itemprop': 'jobLocation'})
             if location_p:
-                job_data['location'] = location_p.get_text(strip=True)
-            else:
-                job_data['location'] = location_tag.get_text(strip=True).replace('\n', ' ').strip()
+                location_text = location_p.get_text(strip=True)
+                if location_text:
+                    job_data['location'] = location_text
         
         # Salary - specific ID with nested structure
-        salary_tag = soup.find('span', {'id': 'job-salary'})
-        if salary_tag:
-            salary_p = salary_tag.find('p', {'itemprop': 'estimatedSalary'})
+        salary_span = soup.find('span', {'id': 'job-salary'})
+        if salary_span:
+            salary_p = salary_span.find('p', {'itemprop': 'estimatedSalary'})
             if salary_p:
                 salary_text = salary_p.get_text(strip=True)
                 if salary_text and salary_text.lower() != 'not disclosed':
                     job_data['salary'] = salary_text
         
         # Experience - specific ID with nested structure
-        exp_tag = soup.find('span', {'id': 'job-experience'})
-        if exp_tag:
-            exp_p = exp_tag.find('p', {'itemprop': 'experienceRequirements'})
+        exp_span = soup.find('span', {'id': 'job-experience'})
+        if exp_span:
+            exp_p = exp_span.find('p', {'itemprop': 'experienceRequirements'})
             if exp_p:
                 job_data['experience'] = exp_p.get_text(strip=True)
-            else:
-                job_data['experience'] = exp_tag.get_text(strip=True).replace('\n', ' ').strip()
         
         # Job type - specific ID with nested structure
         if not job_data['jobType']:
-            jobtype_tag = soup.find('span', {'id': 'job-type'})
-            if jobtype_tag:
-                jobtype_p = jobtype_tag.find('p', {'itemprop': 'employmentType'})
+            jobtype_span = soup.find('span', {'id': 'job-type'})
+            if jobtype_span:
+                jobtype_p = jobtype_span.find('p', {'itemprop': 'employmentType'})
                 if jobtype_p:
                     job_data['jobType'] = jobtype_p.get_text(strip=True)
-                else:
-                    job_data['jobType'] = jobtype_tag.get_text(strip=True).replace('\n', ' ').strip()
         
         # Skills - job-keyword spans
         skill_tags = soup.find_all('span', {'class': 'job-keyword'})
@@ -131,8 +117,7 @@ def parse_job_listing(html, url):
         # Posted date - look for "Posted on" text
         if not job_data['postedDate']:
             # Find text containing "Posted on"
-            posted_elements = soup.find_all(string=re.compile(r'Posted on', re.I))
-            for elem in posted_elements:
+            for elem in soup.find_all(string=re.compile(r'Posted on', re.I)):
                 parent = elem.parent
                 if parent:
                     # Get the highlight span next to it
