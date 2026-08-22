@@ -4,6 +4,7 @@
   "title": "Jobringer Jobs Scraper — Indian Careers",
   "description": "Extract job listings from Jobringer's Indian job board. Returns job title, company, location, salary, experience, job type, and full descriptions. Built for recruiters, job seekers, and market researchers. Compatible with Claude, ChatGPT & AI agents via Apify MCP.",
   "version": "1.0",
+  "output": "./output_schema.json",
   "storages": {
     "dataset": {
       "actorSpecification": 1,

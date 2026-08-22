@@ -1,69 +1,14 @@
 {
+  "actorOutputSchemaVersion": 1,
   "title": "Jobringer Job Listings Output",
+  "description": "Scraped job data from Jobringer India - includes job titles, companies, locations, salaries, experience requirements, job types, skills, and full descriptions",
   "type": "object",
-  "schemaVersion": 1,
   "properties": {
-    "jobTitle": {
+    "results": {
       "type": "string",
-      "title": "Job Title",
-      "description": "The position or role title",
-      "example": "Senior Software Engineer"
-    },
-    "company": {
-      "type": "string",
-      "title": "Company Name",
-      "description": "Name of the hiring organization",
-      "example": "Infosys Technologies Ltd"
-    },
-    "location": {
-      "type": "string",
-      "title": "Job Location",
-      "description": "Geographic location including city and state",
-      "example": "Bangalore, Karnataka"
-    },
-    "salary": {
-      "type": "string",
-      "title": "Salary Range",
-      "description": "Compensation details",
-      "example": "₹8,00,000 - ₹12,00,000 per year"
-    },
-    "experience": {
-      "type": "string",
-      "title": "Required Experience",
-      "description": "Years of experience required",
-      "example": "3-5 years"
-    },
-    "jobType": {
-      "type": "string",
-      "title": "Employment Type",
-      "description": "Type of employment",
-      "example": "FULL_TIME"
-    },
-    "jobDescription": {
-      "type": "string",
-      "title": "Job Description",
-      "description": "Complete job posting details",
-      "example": "We are seeking an experienced Senior Software Engineer..."
-    },
-    "postedDate": {
-      "type": "string",
-      "title": "Posted Date",
-      "description": "When the job was posted",
-      "example": "2 days ago"
-    },
-    "url": {
-      "type": "string",
-      "title": "Job URL",
-      "description": "Direct link to the job listing",
-      "format": "url",
-      "example": "https://www.jobringer.com/job/senior-software-engineer-12345"
-    },
-    "scrapedAt": {
-      "type": "string",
-      "title": "Scraped Timestamp",
-      "description": "ISO 8601 timestamp of data collection",
-      "format": "date-time",
-      "example": "2026-08-22T01:15:00.000Z"
+      "title": "Job Listings",
+      "description": "Complete dataset of scraped jobs from Jobringer",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
     }
   }
 }
