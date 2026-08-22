@@ -16,6 +16,17 @@ def _extract_next_data(html):
     return None
 
 
+def _extract_json_ld(html):
+    """Extract JSON-LD structured data if present."""
+    match = re.search(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except:
+            pass
+    return None
+
+
 def parse_job_listing(html, url):
     """Parse a job detail page and extract all fields."""
     soup = BeautifulSoup(html, 'lxml')
@@ -34,91 +45,109 @@ def parse_job_listing(html, url):
         'scrapedAt': datetime.now(timezone.utc).isoformat()
     }
     
-    # Try __NEXT_DATA__ first
-    next_data = _extract_next_data(html)
-    if next_data:
-        # Parse from structured data if available
-        pass
+    # Try JSON-LD first (most reliable source)
+    json_ld = _extract_json_ld(html)
+    if json_ld:
+        try:
+            if 'title' in json_ld:
+                job_data['jobTitle'] = json_ld['title']
+            if 'hiringOrganization' in json_ld and 'name' in json_ld['hiringOrganization']:
+                job_data['company'] = json_ld['hiringOrganization']['name']
+            if 'employmentType' in json_ld:
+                job_data['jobType'] = json_ld['employmentType']
+            if 'datePosted' in json_ld:
+                job_data['postedDate'] = json_ld['datePosted']
+            if 'description' in json_ld:
+                job_data['description'] = json_ld['description'][:2000]
+        except Exception as e:
+            print(f'Error parsing JSON-LD: {e}')
     
-    # Fallback to HTML parsing
+    # Parse HTML structure (jobringer-specific IDs and structure)
     try:
-        # Job title - usually in h1
-        title_tag = soup.find('h1')
-        if title_tag:
-            job_data['jobTitle'] = title_tag.get_text(strip=True)
+        # Job title - specific ID
+        if not job_data['jobTitle']:
+            title_tag = soup.find('h1', {'id': 'job-title'})
+            if not title_tag:
+                title_tag = soup.find('h1')
+            if title_tag:
+                job_data['jobTitle'] = title_tag.get_text(strip=True)
         
-        # Company - look for common patterns
-        company_selectors = [
-            ('span', {'class': re.compile(r'company', re.I)}),
-            ('div', {'class': re.compile(r'company', re.I)}),
-            ('a', {'class': re.compile(r'company', re.I)}),
-        ]
-        for tag, attrs in company_selectors:
-            company_tag = soup.find(tag, attrs)
+        # Company - specific ID
+        if not job_data['company']:
+            company_tag = soup.find('p', {'id': 'job-company'})
+            if not company_tag:
+                # Fallback to link with company details
+                company_link = soup.find('a', href=re.compile(r'company-details'))
+                if company_link:
+                    company_tag = company_link.find('p')
+                    if not company_tag:
+                        company_tag = company_link
             if company_tag:
                 job_data['company'] = company_tag.get_text(strip=True)
-                break
         
-        # Location
-        location_selectors = [
-            ('span', {'class': re.compile(r'location|city', re.I)}),
-            ('div', {'class': re.compile(r'location|city', re.I)}),
-        ]
-        for tag, attrs in location_selectors:
-            location_tag = soup.find(tag, attrs)
-            if location_tag:
-                job_data['location'] = location_tag.get_text(strip=True)
-                break
+        # Location - specific ID with nested structure
+        location_tag = soup.find('span', {'id': 'job-location'})
+        if location_tag:
+            location_p = location_tag.find('p', {'itemprop': 'jobLocation'})
+            if location_p:
+                job_data['location'] = location_p.get_text(strip=True)
+            else:
+                job_data['location'] = location_tag.get_text(strip=True).replace('\n', ' ').strip()
         
-        # Salary - look for currency symbols
-        salary_pattern = re.compile(r'(₹|Rs\.?|INR)\s*[\d,]+([-–]\s*(₹|Rs\.?|INR)?\s*[\d,]+)?(\s*(per|\/)\s*(month|annum|year))?', re.I)
-        salary_match = salary_pattern.search(html)
-        if salary_match:
-            job_data['salary'] = salary_match.group(0).strip()
+        # Salary - specific ID with nested structure
+        salary_tag = soup.find('span', {'id': 'job-salary'})
+        if salary_tag:
+            salary_p = salary_tag.find('p', {'itemprop': 'estimatedSalary'})
+            if salary_p:
+                salary_text = salary_p.get_text(strip=True)
+                if salary_text and salary_text.lower() != 'not disclosed':
+                    job_data['salary'] = salary_text
         
-        # Experience
-        exp_pattern = re.compile(r'(\d+[\s-]*(?:to|-)[\s-]*\d+|fresher|\d+\+?)\s*(?:years?|yrs?)', re.I)
-        exp_match = exp_pattern.search(html)
-        if exp_match:
-            job_data['experience'] = exp_match.group(0).strip()
+        # Experience - specific ID with nested structure
+        exp_tag = soup.find('span', {'id': 'job-experience'})
+        if exp_tag:
+            exp_p = exp_tag.find('p', {'itemprop': 'experienceRequirements'})
+            if exp_p:
+                job_data['experience'] = exp_p.get_text(strip=True)
+            else:
+                job_data['experience'] = exp_tag.get_text(strip=True).replace('\n', ' ').strip()
         
-        # Job type
-        job_type_keywords = ['full-time', 'part-time', 'contract', 'remote', 'work from home', 'permanent']
-        for keyword in job_type_keywords:
-            if keyword.lower() in html.lower():
-                job_data['jobType'] = keyword.title()
-                break
+        # Job type - specific ID with nested structure
+        if not job_data['jobType']:
+            jobtype_tag = soup.find('span', {'id': 'job-type'})
+            if jobtype_tag:
+                jobtype_p = jobtype_tag.find('p', {'itemprop': 'employmentType'})
+                if jobtype_p:
+                    job_data['jobType'] = jobtype_p.get_text(strip=True)
+                else:
+                    job_data['jobType'] = jobtype_tag.get_text(strip=True).replace('\n', ' ').strip()
         
-        # Skills - look for skills section
-        skills_selectors = [
-            ('div', {'class': re.compile(r'skill|requirement|qualification', re.I)}),
-            ('ul', {'class': re.compile(r'skill|requirement|qualification', re.I)}),
-        ]
-        for tag, attrs in skills_selectors:
-            skills_tag = soup.find(tag, attrs)
-            if skills_tag:
-                skills_text = skills_tag.get_text(' ', strip=True)
-                job_data['skills'] = skills_text[:500]  # Limit length
-                break
+        # Skills - job-keyword spans
+        skill_tags = soup.find_all('span', {'class': 'job-keyword'})
+        if skill_tags:
+            skills = [tag.get_text(strip=True) for tag in skill_tags]
+            job_data['skills'] = ', '.join(skills)
         
-        # Posted date
-        date_pattern = re.compile(r'(\d{1,2}[\s/-]\d{1,2}[\s/-]\d{2,4}|(?:posted|updated)\s+\d+\s+(?:day|hour|week)s?\s+ago)', re.I)
-        date_match = date_pattern.search(html)
-        if date_match:
-            job_data['postedDate'] = date_match.group(0).strip()
+        # Posted date - look for "Posted on" text
+        if not job_data['postedDate']:
+            # Find text containing "Posted on"
+            posted_elements = soup.find_all(string=re.compile(r'Posted on', re.I))
+            for elem in posted_elements:
+                parent = elem.parent
+                if parent:
+                    # Get the highlight span next to it
+                    highlight = parent.find('span', {'class': 'highlight'})
+                    if highlight:
+                        job_data['postedDate'] = highlight.get_text(strip=True)
+                        break
         
-        # Description - main content area
-        desc_selectors = [
-            ('div', {'class': re.compile(r'description|detail|content|job-detail', re.I)}),
-            ('div', {'id': re.compile(r'description|detail|content', re.I)}),
-        ]
-        for tag, attrs in desc_selectors:
-            desc_tag = soup.find(tag, attrs)
+        # Description - from job-details-content
+        if not job_data['description'] or len(job_data['description']) < 100:
+            desc_tag = soup.find('div', {'id': 'job-details-content'})
             if desc_tag:
-                # Clean up the description
+                # Get text from description
                 desc_text = desc_tag.get_text('\n', strip=True)
                 job_data['description'] = desc_text[:2000]  # Limit length
-                break
         
     except Exception as e:
         print(f'Error parsing job data: {e}')

@@ -1,9 +1,117 @@
 {
   "actorSpecification": 1,
   "name": "jobringer-scraper",
-  "title": "JobRinger Scraper - AI-Ready Indian Job Data",
-  "description": "Extract JobRinger.com jobs with title, company, salary, skills. First JobRinger scraper on Apify. For recruitment automation and market intelligence. Works with Claude ChatGPT AI agents via Apify MCP.",
-  "version": "0.1",
-  "buildTag": "latest",
-  "dockerfile": "./Dockerfile"
+  "title": "Jobringer Jobs Scraper — Indian Careers",
+  "description": "Extract job listings from Jobringer's Indian job board. Returns job title, company, location, salary, experience, job type, and full descriptions. Built for recruiters, job seekers, and market researchers. Compatible with Claude, ChatGPT & AI agents via Apify MCP.",
+  "version": "1.0",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "title": "Jobringer Job Listings",
+      "description": "Scraped job data from Jobringer India",
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": [
+              "jobTitle",
+              "company",
+              "location",
+              "salary",
+              "experience",
+              "jobType",
+              "url"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "jobTitle": {
+                "label": "💼 Job Title",
+                "format": "text"
+              },
+              "company": {
+                "label": "🏢 Company",
+                "format": "text"
+              },
+              "location": {
+                "label": "📍 Location",
+                "format": "text"
+              },
+              "salary": {
+                "label": "💰 Salary",
+                "format": "text"
+              },
+              "experience": {
+                "label": "📊 Experience",
+                "format": "text"
+              },
+              "jobType": {
+                "label": "⏰ Type",
+                "format": "text"
+              },
+              "url": {
+                "label": "🔗 View Job",
+                "format": "link"
+              }
+            }
+          }
+        }
+      },
+      "fields": {
+        "jobTitle": {
+          "type": "string",
+          "title": "Job Title",
+          "description": "Position title"
+        },
+        "company": {
+          "type": "string",
+          "title": "Company",
+          "description": "Hiring organization name"
+        },
+        "location": {
+          "type": "string",
+          "title": "Location",
+          "description": "Job location (city, state)"
+        },
+        "salary": {
+          "type": "string",
+          "title": "Salary",
+          "description": "Salary range or compensation details"
+        },
+        "experience": {
+          "type": "string",
+          "title": "Experience",
+          "description": "Required years of experience"
+        },
+        "jobType": {
+          "type": "string",
+          "title": "Job Type",
+          "description": "Employment type (FULL_TIME, PART_TIME, etc.)"
+        },
+        "jobDescription": {
+          "type": "string",
+          "title": "Description",
+          "description": "Full job description text"
+        },
+        "postedDate": {
+          "type": "string",
+          "title": "Posted Date",
+          "description": "When the job was posted"
+        },
+        "url": {
+          "type": "string",
+          "title": "URL",
+          "description": "Direct link to job posting",
+          "format": "url"
+        },
+        "scrapedAt": {
+          "type": "string",
+          "title": "Scraped At",
+          "description": "ISO timestamp of data extraction",
+          "format": "date-time"
+        }
+      }
+    }
+  }
 }
