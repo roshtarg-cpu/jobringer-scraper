@@ -5,8 +5,5 @@
   "description": "Extract JobRinger.com jobs with title, company, salary, skills. First JobRinger scraper on Apify. For recruitment automation and market intelligence. Works with Claude ChatGPT AI agents via Apify MCP.",
   "version": "0.1",
   "buildTag": "latest",
-  "dockerfile": "./Dockerfile",
-  "storages": {
-    "dataset": "./OUTPUT_SCHEMA.json"
-  }
+  "dockerfile": "./Dockerfile"
 }
