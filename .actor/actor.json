@@ -7,6 +7,6 @@
   "buildTag": "latest",
   "dockerfile": "./Dockerfile",
   "storages": {
-    "dataset": "jobringer-jobs"
+    "dataset": "./OUTPUT_SCHEMA.json"
   }
 }
