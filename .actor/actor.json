@@ -1,0 +1,119 @@
+{
+  "actorSpecification": 1,
+  "name": "jobringer-scraper",
+  "title": "JobRinger Jobs Scraper for AI Agents",
+  "description": "Extract job listings from JobRinger.com with title, company, location, salary, experience, and description. Perfect for AI agents, Claude, ChatGPT integration via Apify MCP. Get structured job data for recruitment automation and market analysis.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "dockerfile": "./Dockerfile",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "title": "JobRinger Jobs Dataset",
+      "description": "Scraped job listings from jobringer.com",
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": [
+              "jobTitle",
+              "company",
+              "location",
+              "salary",
+              "experience",
+              "url"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "jobTitle": {
+                "label": "Job Title",
+                "format": "text"
+              },
+              "company": {
+                "label": "Company",
+                "format": "text"
+              },
+              "location": {
+                "label": "Location",
+                "format": "text"
+              },
+              "salary": {
+                "label": "Salary",
+                "format": "text"
+              },
+              "experience": {
+                "label": "Experience",
+                "format": "text"
+              },
+              "url": {
+                "label": "URL",
+                "format": "link"
+              }
+            }
+          }
+        }
+      },
+      "fields": {
+        "jobTitle": {
+          "type": "string",
+          "title": "Job Title",
+          "description": "Position title"
+        },
+        "company": {
+          "type": "string",
+          "title": "Company",
+          "description": "Hiring organization"
+        },
+        "location": {
+          "type": "string",
+          "title": "Location",
+          "description": "Job location (city, state)"
+        },
+        "salary": {
+          "type": "string",
+          "title": "Salary",
+          "description": "Salary range or package"
+        },
+        "experience": {
+          "type": "string",
+          "title": "Experience",
+          "description": "Required experience level"
+        },
+        "jobType": {
+          "type": "string",
+          "title": "Job Type",
+          "description": "Employment type (Full-time, Part-time, etc.)"
+        },
+        "skills": {
+          "type": "string",
+          "title": "Skills",
+          "description": "Required skills or qualifications"
+        },
+        "postedDate": {
+          "type": "string",
+          "title": "Posted Date",
+          "description": "When the job was posted"
+        },
+        "description": {
+          "type": "string",
+          "title": "Description",
+          "description": "Full job description"
+        },
+        "url": {
+          "type": "string",
+          "title": "URL",
+          "description": "Job posting URL",
+          "format": "url"
+        },
+        "scrapedAt": {
+          "type": "string",
+          "title": "Scraped At",
+          "description": "Extraction timestamp",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
