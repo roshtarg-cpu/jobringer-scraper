@@ -55,9 +55,7 @@ def parse_job_listing(html, url):
     try:
         # Job title - specific ID
         if not job_data['jobTitle']:
-            title_tag = soup.find('h1', {'id': 'job-title'})
-            if not title_tag:
-                title_tag = soup.find('h1')
+            title_tag = soup.find('h1', {'id': 'job-title'}) or soup.find('h1')
             if title_tag:
                 job_data['jobTitle'] = title_tag.get_text(strip=True)
         
@@ -65,26 +63,20 @@ def parse_job_listing(html, url):
         if not job_data['company']:
             company_tag = soup.find('p', {'id': 'job-company'})
             if not company_tag:
-                # Fallback to link with company details
                 company_link = soup.find('a', href=re.compile(r'company-details'))
                 if company_link:
-                    company_tag = company_link.find('p')
-                    if not company_tag:
-                        company_tag = company_link
+                    company_tag = company_link.find('p') or company_link
             if company_tag:
                 job_data['company'] = company_tag.get_text(strip=True)
         
-        # Location - specific ID with nested structure
+        # Location
         location_span = soup.find('span', {'id': 'job-location'})
         if location_span:
-            # Try to get the nested p tag
             location_p = location_span.find('p', {'itemprop': 'jobLocation'})
             if location_p:
-                location_text = location_p.get_text(strip=True)
-                if location_text:
-                    job_data['location'] = location_text
+                job_data['location'] = location_p.get_text(strip=True)
         
-        # Salary - specific ID with nested structure
+        # Salary
         salary_span = soup.find('span', {'id': 'job-salary'})
         if salary_span:
             salary_p = salary_span.find('p', {'itemprop': 'estimatedSalary'})
@@ -93,14 +85,14 @@ def parse_job_listing(html, url):
                 if salary_text and salary_text.lower() != 'not disclosed':
                     job_data['salary'] = salary_text
         
-        # Experience - specific ID with nested structure
+        # Experience
         exp_span = soup.find('span', {'id': 'job-experience'})
         if exp_span:
             exp_p = exp_span.find('p', {'itemprop': 'experienceRequirements'})
             if exp_p:
                 job_data['experience'] = exp_p.get_text(strip=True)
         
-        # Job type - specific ID with nested structure
+        # Job type
         if not job_data['jobType']:
             jobtype_span = soup.find('span', {'id': 'job-type'})
             if jobtype_span:
@@ -108,31 +100,28 @@ def parse_job_listing(html, url):
                 if jobtype_p:
                     job_data['jobType'] = jobtype_p.get_text(strip=True)
         
-        # Skills - job-keyword spans
+        # Skills
         skill_tags = soup.find_all('span', {'class': 'job-keyword'})
         if skill_tags:
             skills = [tag.get_text(strip=True) for tag in skill_tags]
             job_data['skills'] = ', '.join(skills)
         
-        # Posted date - look for "Posted on" text
+        # Posted date
         if not job_data['postedDate']:
-            # Find text containing "Posted on"
             for elem in soup.find_all(string=re.compile(r'Posted on', re.I)):
                 parent = elem.parent
                 if parent:
-                    # Get the highlight span next to it
                     highlight = parent.find('span', {'class': 'highlight'})
                     if highlight:
                         job_data['postedDate'] = highlight.get_text(strip=True)
                         break
         
-        # Description - from job-details-content
+        # Description
         if not job_data['description'] or len(job_data['description']) < 100:
             desc_tag = soup.find('div', {'id': 'job-details-content'})
             if desc_tag:
-                # Get text from description
                 desc_text = desc_tag.get_text('\n', strip=True)
-                job_data['description'] = desc_text[:2000]  # Limit length
+                job_data['description'] = desc_text[:2000]
         
     except Exception as e:
         print(f'Error parsing job data: {e}')
@@ -141,70 +130,54 @@ def parse_job_listing(html, url):
 
 
 def parse_job_links(html):
-    """Extract job listing URLs from a search/listing page."""
+    """Extract job listing URLs from a search/listing page.
+    
+    Based on live site analysis (Aug 2026):
+    - Job cards have class .job-card
+    - Job links follow pattern: /job/{slug}/{8-hex-id}
+    - Example: /job/software-developer/96018b76
+    """
     soup = BeautifulSoup(html, 'lxml')
     links = []
     
-    # UPDATED: More comprehensive link patterns for jobringer.com
-    # Based on actual site structure analysis
-    job_link_patterns = [
-        re.compile(r'/job[s]?/[\w-]+', re.I),
-        re.compile(r'/vacancy/[\w-]+', re.I),
-        re.compile(r'/position/[\w-]+', re.I),
-        re.compile(r'job-\d+', re.I),
-        re.compile(r'/[\w-]+-job-in-', re.I),
-        re.compile(r'/job-detail', re.I),
-        re.compile(r'/jobdetails', re.I),
-        re.compile(r'view.*job', re.I),
-    ]
+    # Strategy 1: Look for .job-card containers
+    job_cards = soup.select('.job-card')
+    if job_cards:
+        for card in job_cards:
+            # Find link starting with /job/ or job/
+            job_link = card.select_one('a[href^="/job/"]') or card.select_one('a[href^="job/"]')
+            if job_link:
+                href = job_link.get('href', '')
+                # Validate pattern: /job/{slug}/{8-hex-id}
+                if re.match(r'/job/[\w-]+/[0-9a-f]{8}$', href):
+                    full_url = f'https://jobringer.com{href}' if href.startswith('/') else f'https://jobringer.com/{href}'
+                    if full_url not in links:
+                        links.append(full_url)
     
-    # Also look for data attributes that might contain job IDs
-    for element in soup.find_all(['div', 'a'], attrs={'data-job-id': True}):
-        job_id = element.get('data-job-id')
-        if job_id:
-            full_url = f'https://jobringer.com/job/{job_id}'
-            if full_url not in links:
-                links.append(full_url)
+    # Strategy 2: Look in #jobs-container
+    if not links:
+        jobs_container = soup.select_one('#jobs-container')
+        if jobs_container:
+            for link_tag in jobs_container.find_all('a', href=True):
+                href = link_tag.get('href', '')
+                if re.match(r'/job/[\w-]+/[0-9a-f]{8}$', href):
+                    full_url = f'https://jobringer.com{href}' if href.startswith('/') else f'https://jobringer.com/{href}'
+                    if full_url not in links:
+                        links.append(full_url)
     
-    # Parse all links
-    for link_tag in soup.find_all('a', href=True):
-        href = link_tag.get('href', '')
-        
-        for pattern in job_link_patterns:
-            if pattern.search(href):
-                # Make absolute URL if needed
-                if href.startswith('http'):
-                    full_url = href
-                elif href.startswith('/'):
-                    full_url = f'https://jobringer.com{href}'
-                else:
-                    full_url = f'https://jobringer.com/{href}'
-                
-                if full_url not in links:
-                    links.append(full_url)
-                break
-    
-    # If still no links found, try to find ANY links that might be jobs
-    # by looking for links with text containing job-related keywords
-    if len(links) == 0:
+    # Strategy 3: Scan all links for correct pattern
+    if not links:
         for link_tag in soup.find_all('a', href=True):
-            text = link_tag.get_text(strip=True).lower()
             href = link_tag.get('href', '')
-            
-            # Skip navigation and common non-job links
-            if any(skip in href.lower() for skip in ['login', 'signup', 'register', 'pricing', 'about', 'contact', 'faq', 'terms', 'privacy']):
-                continue
-            
-            # Look for job-related text
-            if any(keyword in text for keyword in ['apply', 'view job', 'details', 'opening']) and href:
-                if href.startswith('http'):
-                    full_url = href
-                elif href.startswith('/'):
-                    full_url = f'https://jobringer.com{href}'
-                else:
+            # Match ONLY /job/{slug}/{8-hex-id}
+            # SKIP /jobs, /applyCredits, /job-listing.php, company-details
+            if re.match(r'/job/[\w-]+/[0-9a-f]{8}$', href):
+                if href in ['/jobs', '/applyCredits']:
                     continue
-                
-                if 'jobringer.com' in full_url and full_url not in links:
+                if 'company-details' in href or 'job-listing.php' in href:
+                    continue
+                full_url = f'https://jobringer.com{href}' if href.startswith('/') else f'https://jobringer.com/{href}'
+                if full_url not in links:
                     links.append(full_url)
     
     return links
